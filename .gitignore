@@ -51,3 +51,6 @@ postgres_data/
 
 # Docker
 .dockerignore
+
+# Large demo files
+demo-big-en/
