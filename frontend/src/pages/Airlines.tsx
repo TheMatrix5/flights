@@ -2,9 +2,41 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, Cell } from 'recharts';
+import { Button } from '../components/ui/button';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, AreaChart, Area, LineChart, Line, ComposedChart } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../components/ui/chart';
 import { api } from '../services/api';
 import type { AirlineStats } from '../types';
+import { Filter, X } from 'lucide-react';
+
+// Chart configurations with distinct shadcn colors
+const passengersPerAirlineChartConfig = {
+  total_passengers: {
+    label: "Passengers",
+    color: "hsl(var(--chart-1))",  // Blue
+  },
+} satisfies ChartConfig;
+
+const passengersChartConfig = {
+  total_passengers: {
+    label: "Passengers",
+    color: "hsl(var(--chart-2))",  // Green
+  },
+} satisfies ChartConfig;
+
+const priceChartConfig = {
+  average_price: {
+    label: "Avg Price",
+    color: "hsl(var(--chart-3))",  // Orange
+  },
+} satisfies ChartConfig;
+
+const ontimeChartConfig = {
+  on_time_percentage: {
+    label: "On-Time %",
+    color: "hsl(var(--chart-4))",  // Purple
+  },
+} satisfies ChartConfig;
 
 export default function Airlines() {
   const [stats, setStats] = useState<AirlineStats[]>([]);
@@ -64,148 +96,185 @@ export default function Airlines() {
     <div className="p-8 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Airlines Dashboard</h1>
-        <p className="text-gray-500">Statistics and performance by airline</p>
-        {selectedAirline && (
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-sm font-medium">Filtered by:</span>
-            <Badge
-              variant="default"
-              className="cursor-pointer"
-              onClick={() => setSelectedAirline(null)}
-            >
-              {selectedAirline} ✕
-            </Badge>
-          </div>
-        )}
+        <p className="text-gray-500">Statistics and performance by airline - Click to filter</p>
       </div>
+
+      {/* Horizontal Filters Bar */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-start gap-4 flex-wrap">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
+                <Filter className="h-3 w-3" />
+                Select Airline
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {stats.map(airline => (
+                  <Badge
+                    key={airline.airline}
+                    variant={selectedAirline === airline.airline ? 'default' : 'outline'}
+                    className={`cursor-pointer text-xs transition-all ${
+                      selectedAirline === airline.airline
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                    onClick={() => setSelectedAirline(selectedAirline === airline.airline ? null : airline.airline)}
+                  >
+                    {airline.airline.split(' ')[0]}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Clear Filter Button */}
+            {selectedAirline && (
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedAirline(null)}
+                  className="h-8"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Flights by Airline</CardTitle>
-            <CardDescription>Total number of flights per airline (click to filter)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={stats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="airline" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="total_flights"
-                  name="Total Flights"
-                  onClick={handleBarClick}
-                  cursor="pointer"
-                >
-                  {stats.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={getBarColor(entry.airline, colors.flights)}
-                      opacity={getBarOpacity(entry.airline)}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Passengers by Airline</CardTitle>
-            <CardDescription>Total passengers carried by each airline (click to filter)</CardDescription>
+            <CardDescription>Total passengers carried by each airline</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={stats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="airline" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
+            <ChartContainer config={passengersPerAirlineChartConfig} className="h-[400px] w-full aspect-auto">
+              <BarChart data={stats} width={500} height={400}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="airline"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  angle={-35}
+                  textAnchor="end"
+                  height={100}
+                />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
                   dataKey="total_passengers"
-                  name="Total Passengers"
-                  onClick={handleBarClick}
-                  cursor="pointer"
-                >
-                  {stats.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={getBarColor(entry.airline, colors.passengers)}
-                      opacity={getBarOpacity(entry.airline)}
-                    />
-                  ))}
-                </Bar>
+                  fill="var(--color-total_passengers)"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Average Price by Airline</CardTitle>
-            <CardDescription>Average ticket price per airline (click to filter)</CardDescription>
+            <CardDescription>Comparison of average ticket prices</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={stats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="airline" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
-                <Legend />
+            <ChartContainer config={priceChartConfig} className="h-[400px] w-full aspect-auto">
+              <BarChart data={stats} width={500} height={400}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="airline"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  angle={-35}
+                  textAnchor="end"
+                  height={100}
+                />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                <ChartTooltip
+                  content={<ChartTooltipContent formatter={(value) => `$${Number(value).toFixed(2)}`} />}
+                />
                 <Bar
                   dataKey="average_price"
-                  name="Average Price"
-                  onClick={handleBarClick}
-                  cursor="pointer"
-                >
-                  {stats.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={getBarColor(entry.airline, colors.price)}
-                      opacity={getBarOpacity(entry.airline)}
-                    />
-                  ))}
-                </Bar>
+                  fill="var(--color-average_price)"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Passengers vs Average Price</CardTitle>
+            <CardDescription>Relationship between passenger volume and pricing</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={passengersChartConfig} className="h-[400px] w-full aspect-auto">
+              <AreaChart data={stats} width={500} height={400}>
+                <defs>
+                  <linearGradient id="fillPassengers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-total_passengers)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--color-total_passengers)" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="airline"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  angle={-35}
+                  textAnchor="end"
+                  height={100}
+                />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Area
+                  type="monotone"
+                  dataKey="total_passengers"
+                  stroke="var(--color-total_passengers)"
+                  fill="url(#fillPassengers)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ChartContainer>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>On-Time Performance</CardTitle>
-            <CardDescription>Percentage of on-time flights by airline (click to filter)</CardDescription>
+            <CardDescription>Percentage of on-time flights by airline</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={stats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="airline" angle={-45} textAnchor="end" height={100} />
-                <YAxis domain={[0, 100]} />
-                <Tooltip formatter={(value) => `${Number(value).toFixed(1)}%`} />
-                <Legend />
+            <ChartContainer config={ontimeChartConfig} className="h-[400px] w-full aspect-auto">
+              <BarChart data={stats} width={500} height={400}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="airline"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  angle={-35}
+                  textAnchor="end"
+                  height={100}
+                />
+                <YAxis domain={[0, 100]} tickLine={false} axisLine={false} tickMargin={8} />
+                <ChartTooltip
+                  content={<ChartTooltipContent formatter={(value) => `${Number(value).toFixed(1)}%`} />}
+                />
                 <Bar
                   dataKey="on_time_percentage"
-                  name="On-Time %"
-                  onClick={handleBarClick}
-                  cursor="pointer"
-                >
-                  {stats.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={getBarColor(entry.airline, colors.ontime)}
-                      opacity={getBarOpacity(entry.airline)}
-                    />
-                  ))}
-                </Bar>
+                  fill="var(--color-on_time_percentage)"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>

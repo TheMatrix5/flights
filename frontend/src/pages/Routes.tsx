@@ -2,9 +2,41 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
+import { Button } from '../components/ui/button';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ScatterChart, Scatter, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../components/ui/chart';
 import { api } from '../services/api';
 import type { RouteStats } from '../types';
+import { Filter, X } from 'lucide-react';
+
+// Chart configurations with distinct shadcn colors - using passengers as main metric
+const passengersPerRouteChartConfig = {
+  total_passengers: {
+    label: "Passengers",
+    color: "hsl(var(--chart-1))",  // Blue
+  },
+} satisfies ChartConfig;
+
+const priceChartConfig = {
+  average_price: {
+    label: "Avg Price",
+    color: "hsl(var(--chart-3))",  // Orange
+  },
+} satisfies ChartConfig;
+
+const passengersChartConfig = {
+  total_passengers: {
+    label: "Passengers",
+    color: "hsl(var(--chart-2))",  // Green
+  },
+} satisfies ChartConfig;
+
+const scatterChartConfig = {
+  route: {
+    label: "Route",
+    color: "hsl(var(--chart-5))",  // Pink/Red
+  },
+} satisfies ChartConfig;
 
 export default function Routes() {
   const [stats, setStats] = useState<RouteStats[]>([]);
@@ -73,121 +105,155 @@ export default function Routes() {
     scatter: '#8b5cf6'
   };
 
+  const topRoutesByPassengers = chartData
+    .sort((a, b) => b.total_passengers - a.total_passengers)
+    .slice(0, 10);
+
   return (
     <div className="p-8 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Routes Dashboard</h1>
-        <p className="text-gray-500">Statistics by flight route</p>
-        {selectedRoute && (
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-sm font-medium">Filtered by:</span>
-            <Badge
-              variant="default"
-              className="cursor-pointer"
-              onClick={() => setSelectedRoute(null)}
-            >
-              {selectedRoute} ✕
-            </Badge>
-          </div>
-        )}
+        <p className="text-gray-500">Statistics by flight route - Click to filter</p>
       </div>
+
+      {/* Horizontal Filters Bar */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-start gap-4 flex-wrap">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
+                <Filter className="h-3 w-3" />
+                Top 10 Routes by Passengers
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {topRoutesByPassengers.map(route => (
+                  <Badge
+                    key={route.route}
+                    variant={selectedRoute === route.route ? 'default' : 'outline'}
+                    className={`cursor-pointer text-xs transition-all ${
+                      selectedRoute === route.route
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                    onClick={() => setSelectedRoute(selectedRoute === route.route ? null : route.route)}
+                  >
+                    {route.route}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Clear Filter Button */}
+            {selectedRoute && (
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedRoute(null)}
+                  className="h-8"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Top Routes by Flight Count</CardTitle>
-            <CardDescription>Most popular routes by number of flights (click to filter)</CardDescription>
+            <CardTitle>Top 10 Routes by Passenger Volume</CardTitle>
+            <CardDescription>Routes with the highest number of passengers</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={500}>
-              <BarChart data={chartData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="route" type="category" width={80} />
-                <Tooltip />
-                <Legend />
+            <ChartContainer config={passengersPerRouteChartConfig} className="h-[500px] w-full aspect-auto">
+              <BarChart data={chartData.sort((a, b) => b.total_passengers - a.total_passengers).slice(0, 10)} layout="vertical" width={500} height={500}>
+                <CartesianGrid horizontal={false} />
+                <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis
+                  dataKey="route"
+                  type="category"
+                  width={100}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
-                  dataKey="total_flights"
-                  name="Total Flights"
-                  onClick={handleBarClick}
-                  cursor="pointer"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={getBarColor(entry.route, colors.flights)}
-                      opacity={getBarOpacity(entry.route)}
-                    />
-                  ))}
-                </Bar>
+                  dataKey="total_passengers"
+                  fill="var(--color-total_passengers)"
+                  radius={[0, 8, 8, 0]}
+                />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Average Price by Route</CardTitle>
-              <CardDescription>Average ticket price for each route (click to filter)</CardDescription>
+              <CardTitle>Top 10 Most Expensive Routes</CardTitle>
+              <CardDescription>Routes with highest average ticket prices</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={500}>
-                <BarChart data={chartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="route" type="category" width={80} />
-                  <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
-                  <Legend />
+              <ChartContainer config={priceChartConfig} className="h-[500px] w-full aspect-auto">
+                <BarChart data={chartData.sort((a, b) => b.average_price - a.average_price).slice(0, 10)} width={500} height={500}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="route"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    angle={-45}
+                    textAnchor="end"
+                    height={120}
+                  />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                  <ChartTooltip
+                    content={<ChartTooltipContent formatter={(value) => `$${Number(value).toFixed(2)}`} />}
+                  />
                   <Bar
                     dataKey="average_price"
-                    name="Average Price"
-                    onClick={handleBarClick}
-                    cursor="pointer"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={getBarColor(entry.route, colors.price)}
-                        opacity={getBarOpacity(entry.route)}
-                      />
-                    ))}
-                  </Bar>
+                    fill="var(--color-average_price)"
+                    radius={[8, 8, 0, 0]}
+                  />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Passengers by Route</CardTitle>
-              <CardDescription>Total passengers on each route (click to filter)</CardDescription>
+              <CardTitle>Top 10 Cheapest Routes</CardTitle>
+              <CardDescription>Most affordable routes by average price</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={500}>
-                <BarChart data={chartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="route" type="category" width={80} />
-                  <Tooltip />
-                  <Legend />
+              <ChartContainer config={priceChartConfig} className="h-[500px] w-full aspect-auto">
+                <BarChart data={chartData.sort((a, b) => a.average_price - b.average_price).slice(0, 10)} width={500} height={500}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="route"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    angle={-45}
+                    textAnchor="end"
+                    height={120}
+                  />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                  <ChartTooltip
+                    content={<ChartTooltipContent formatter={(value) => `$${Number(value).toFixed(2)}`} />}
+                  />
                   <Bar
-                    dataKey="total_passengers"
-                    name="Total Passengers"
-                    onClick={handleBarClick}
-                    cursor="pointer"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={getBarColor(entry.route, colors.passengers)}
-                        opacity={getBarOpacity(entry.route)}
-                      />
-                    ))}
-                  </Bar>
+                    dataKey="average_price"
+                    fill="var(--color-average_price)"
+                    radius={[8, 8, 0, 0]}
+                  />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
         </div>
@@ -198,15 +264,27 @@ export default function Routes() {
             <CardDescription>Relationship between average price and passenger count (click to filter)</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <ScatterChart>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="average_price" name="Average Price" type="number" />
-                <YAxis dataKey="total_passengers" name="Total Passengers" type="number" />
-                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Legend />
+            <ChartContainer config={scatterChartConfig} className="h-[400px] w-full aspect-auto">
+              <ScatterChart width={500} height={400}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="average_price"
+                  name="Average Price"
+                  type="number"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                />
+                <YAxis
+                  dataKey="total_passengers"
+                  name="Total Passengers"
+                  type="number"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} cursor={false} />
                 <Scatter
-                  name="Routes"
                   data={chartData}
                   onClick={handleScatterClick}
                   cursor="pointer"
@@ -214,13 +292,13 @@ export default function Routes() {
                   {chartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={getBarColor(entry.route, colors.scatter)}
+                      fill={selectedRoute && entry.route !== selectedRoute ? "hsl(var(--muted))" : "var(--color-route)"}
                       opacity={getBarOpacity(entry.route)}
                     />
                   ))}
                 </Scatter>
               </ScatterChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>

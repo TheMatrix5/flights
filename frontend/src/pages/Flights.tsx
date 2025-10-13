@@ -89,17 +89,60 @@ export default function Flights() {
 
   return (
     <div className="p-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">All Flights</h1>
-          <p className="text-gray-500">
-            Showing {filteredFlights.length} of {flights.length} flights
-          </p>
+      <div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">All Flights</h1>
+            <p className="text-gray-500">
+              Showing {filteredFlights.length} of {flights.length} flights
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Plane className="h-6 w-6" />
+            <span className="text-2xl font-bold">{filteredFlights.length}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Plane className="h-6 w-6" />
-          <span className="text-2xl font-bold">{filteredFlights.length}</span>
-        </div>
+
+        {/* Active Filters Display */}
+        {hasActiveFilters && (
+          <div className="mt-4 flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium">Active filters:</span>
+            {selectedAirline && (
+              <Badge
+                variant="default"
+                className="cursor-pointer hover:bg-blue-600"
+                onClick={() => setSelectedAirline(null)}
+              >
+                Airline: {selectedAirline} ✕
+              </Badge>
+            )}
+            {selectedStatus && (
+              <Badge
+                variant={getStatusVariant(selectedStatus)}
+                className="cursor-pointer"
+                onClick={() => setSelectedStatus(null)}
+              >
+                Status: {selectedStatus.replace('_', ' ')} ✕
+              </Badge>
+            )}
+            {selectedRoute && (
+              <Badge
+                variant="default"
+                className="cursor-pointer hover:bg-blue-600"
+                onClick={() => setSelectedRoute(null)}
+              >
+                Route: {selectedRoute} ✕
+              </Badge>
+            )}
+            <Badge
+              variant="destructive"
+              className="cursor-pointer"
+              onClick={clearAllFilters}
+            >
+              Clear All ✕
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -135,10 +178,15 @@ export default function Flights() {
                 <Badge
                   key={airline}
                   variant={selectedAirline === airline ? 'default' : 'outline'}
-                  className="cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900"
+                  className={`cursor-pointer transition-all ${
+                    selectedAirline === airline
+                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-2 border-gray-400 dark:border-gray-500'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
                   onClick={() => setSelectedAirline(selectedAirline === airline ? null : airline)}
                 >
                   {airline}
+                  {selectedAirline === airline && ' ✓'}
                 </Badge>
               ))}
             </div>
@@ -151,11 +199,16 @@ export default function Flights() {
               {statuses.map(status => (
                 <Badge
                   key={status}
-                  variant={selectedStatus === status ? getStatusVariant(status) : 'outline'}
-                  className="cursor-pointer"
+                  variant={selectedStatus === status ? 'secondary' : 'outline'}
+                  className={`cursor-pointer transition-all ${
+                    selectedStatus === status
+                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-2 border-gray-400 dark:border-gray-500'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
                   onClick={() => setSelectedStatus(selectedStatus === status ? null : status)}
                 >
                   {status.replace('_', ' ')}
+                  {selectedStatus === status && ' ✓'}
                 </Badge>
               ))}
             </div>
@@ -169,10 +222,15 @@ export default function Flights() {
                 <Badge
                   key={route}
                   variant={selectedRoute === route ? 'default' : 'outline'}
-                  className="cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900"
+                  className={`cursor-pointer transition-all ${
+                    selectedRoute === route
+                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-2 border-gray-400 dark:border-gray-500'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
                   onClick={() => setSelectedRoute(selectedRoute === route ? null : route)}
                 >
                   {route}
+                  {selectedRoute === route && ' ✓'}
                 </Badge>
               ))}
             </div>
